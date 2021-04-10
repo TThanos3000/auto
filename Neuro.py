@@ -1,71 +1,23 @@
-import numpy
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Activation
-from keras.layers.convolutional import Conv2D, MaxPooling2D
-from keras.constraints import maxnorm
-from keras.utils import np_utils
-
-seed = 21
-
-from keras.datasets import cifar10
-
-# loading in the data
-(X_train, y_train), (X_test, y_test) = cifar10.load_data()
-
-# normalize the inputs from 0-255 to between 0 and 1 by dividing by 255
-X_train = X_train.astype('float32')
-X_test = X_test.astype('float32')
-X_train = X_train / 255.0
-X_test = X_test / 255.0
-
-# one hot encode outputs
-y_train = np_utils.to_categorical(y_train)
-y_test = np_utils.to_categorical(y_test)
-class_num = y_test.shape[1]
-
-model = Sequential()
-
-model.add(Conv2D(32, (3, 3), input_shape=X_train.shape[1:], padding='same'))
-model.add(Activation('relu'))
-model.add(Conv2D(32, (3, 3), input_shape=(3, 32, 32), activation='relu', padding='same'))
-model.add(Dropout(0.2))
-model.add(BatchNormalization())
-model.add(Conv2D(64, (3, 3), padding='same'))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.2))
-model.add(BatchNormalization())
-model.add(Conv2D(64, (3, 3), padding='same'))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.2))
-model.add(BatchNormalization())
-model.add(Conv2D(128, (3, 3), padding='same'))
-model.add(Activation('relu'))
-model.add(Dropout(0.2))
-model.add(BatchNormalization())
-model.add(Flatten())
-model.add(Dropout(0.2))
-model.add(Dense(256, kernel_constraint=maxnorm(3)))
-model.add(Activation('relu'))
-model.add(Dropout(0.2))
-model.add(BatchNormalization())
-model.add(Dense(128, kernel_constraint=maxnorm(3)))
-model.add(Activation('relu'))
-model.add(Dropout(0.2))
-model.add(BatchNormalization())
-model.add(Dense(class_num))
-model.add(Activation('softmax'))
-
-epochs = 25
-optimizer = 'adam'
-
-model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
-
-numpy.random.seed(seed)
-model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=epochs, batch_size=64)
-
-scores = model.evaluate(X_test, y_test, verbose=0)
-print("Accuracy: %.2f%%" % (scores[1]*100))
-
-model.save('NeuronNetwork_detectes_auto.h5')
+from keras.preprocessing.image import load_img
+from keras.preprocessing.image import img_to_array
+from keras.applications.vgg16 import preprocess_input
+from keras.applications.vgg16 import decode_predictions
+from keras.applications.vgg16 import VGG16
+# load the model
+model = VGG16()
+# load an image from file
+image = load_img('/content/Auto.jpg', target_size=(224, 224))
+# convert the image pixels to a numpy array
+image = img_to_array(image)
+# reshape data for the model
+image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
+# prepare the image for the VGG model
+image = preprocess_input(image)
+# predict the probability across all output classes
+yhat = model.predict(image)
+# convert the probabilities to class labels
+label = decode_predictions(yhat)
+# retrieve the most likely result, e.g. highest probability
+label = label[0][0]
+# print the classification
+print('%s (%.2f%%)' % (label[1], label[2]*100))
